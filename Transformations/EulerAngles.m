@@ -1,6 +1,6 @@
 clear ; close all; clc
 syms psi theta phi %phi: yaw | theta : roll | psi : pitch
-% psi = 45*pi/180;
+psi = 45*pi/180;
 %Body2Nav := rotação em torno de um ponto
 R_psi = [1 0 0;0 cos(psi) -sin(psi);0 sin(psi) cos(psi)]
 R_theta = [cos(theta) 0  sin(theta);0 1 0;-sin(theta) 0 cos(theta)]
