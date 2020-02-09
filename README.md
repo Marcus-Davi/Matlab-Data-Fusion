@@ -1,3 +1,3 @@
-# Data-Fusin Matlab
+# Data-Fusion Matlab
 
 
