@@ -1,6 +1,6 @@
 clear;close all;clc
-vetor = [1 1 1]; %vetor a ser girado
-eixo = [1 0 0]; %eixo de giro
+vetor = [1 0 0]; %vetor a ser girado
+eixo = [0 0 1]; %eixo de giro
 angulo = pi/4; %lembrando que myquatrotate gira 2*angulo!!
 v = [0 vetor]'
 q = [cos(angulo/2) sin(angulo/2)*eixo]' %lembrando que myquatrotate gira 2*angulo!!
