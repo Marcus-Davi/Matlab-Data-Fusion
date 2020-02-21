@@ -7,18 +7,18 @@ clear ;close all;clc
 disp('Conectando a Porta Serial...');
 global porta
 % porta = serial('/dev/ttyACM0','BaudRate',115200,'Terminator','CR');
-porta = serial('/dev/ttyACM1','BaudRate',115200,'Terminator','CR','Timeout',10);
+porta = serial('/dev/ttyACM0','BaudRate',115200,'Terminator','CR','Timeout',10);
 fopen(porta);
 disp('Conectado.');
 
 Ts = 1/50;
-Qn = [ 0.001, -0.0003, 0.0003, 0.0003,
-    		-0.0003,0.0001,-0.0001,-0.0001,
-    		0.0003,-0.0001,0.0001,0.0001,
-    		0.0003,-0.0001,0.0001,0.0001];
+Qn = [ 0.001, -0.0003, 0.0003, 0.0003, 
+      -0.0003,0.0001,-0.0001,-0.0001,
+       0.0003,-0.0001,0.0001,0.0001,
+       0.0003,-0.0001,0.0001,0.0001];
 
 Rn_ga = 0.1*eye(3);
-Rn = 0.71e-3*eye(6); 
+Rn = 0.1*eye(6); 
 Rn(4,4) = 2;
 Rn(5,5) = 2;
 Rn(6,6) = 3;
@@ -33,8 +33,8 @@ q_k = [1 0 0 0]';
 q_k_gyro = q_k;
 q_k_gyro_accel = q_k;
 g = [0 0 9.8]';
-m = [cos(m_inclination) 0 sin(m_inclination)]';
-Pk = eye(4);
+mn_ = [cos(m_inclination) 0 sin(m_inclination)]';
+Pk = zeros(4);
 
 Pk_ga = eye(4);
 
@@ -90,9 +90,10 @@ q_k_gyro = (q_k_gyro' + (Ts/2)*quatmultiply(q_k_gyro',[0; w_measure]'))';%Assume
 
 q_k_gyro_accel = (q_k_gyro_accel' + (Ts/2)*quatmultiply(q_k_gyro_accel',[0; w_measure]'))';%Assume calibrado (bias constante) %-Ts/2 *quatmultiply(q_k,[0 bias]); 
 
+mn = mn_*mag_field;
 
 a_est = quatrotate(q_k',g')'; %nav2body
-m_est = quatrotate(q_k',mag_field*m')'; %nav2body
+m_est = quatrotate(q_k',mn')'; %nav2body
 
 a_est_ga = quatrotate(q_k_gyro_accel',g')'; %nav2body
 
@@ -100,6 +101,7 @@ y_est = [a_est;m_est]; % 6x1
 
 y_est_ga =  a_est_ga;
 % y_est = [a_est]; % 3x1
+
 
 Jf = (Ts/2)*[2/Ts -w_measure(1) -w_measure(2) -w_measure(3);
       w_measure(1) 2/Ts w_measure(3) -w_measure(2);
@@ -112,12 +114,12 @@ Jh1 =2*9.8*[-q_k(3) q_k(4) -q_k(1) q_k(2);
     q_k(2) q_k(1) q_k(4) q_k(3);
     q_k(1) -q_k(2) -q_k(3) q_k(4)];
 
-Jh2 = 2*mag_field*[q_k(1) q_k(2) -q_k(3) -q_k(4);
+Jh2 = 2*mn(1)*[q_k(1) q_k(2) -q_k(3) -q_k(4);
     -q_k(4) q_k(3) q_k(2) -q_k(1);
     q_k(3) q_k(4) q_k(1) q_k(2)];
            
 Jh2 = Jh2 + ...
-    2*mag_field*[-q_k(3) q_k(4) -q_k(1) q_k(2);
+    2*mn(3)*[-q_k(3) q_k(4) -q_k(1) q_k(2);
     q_k(2) q_k(1) q_k(4) q_k(3);
     q_k(1) -q_k(2) -q_k(3) q_k(4)];
 

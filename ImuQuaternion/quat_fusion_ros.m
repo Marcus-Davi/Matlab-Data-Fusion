@@ -7,7 +7,7 @@ clear ;close all;clc
 disp('Conectando a Porta Serial...');
 global porta
 % porta = serial('/dev/ttyACM0','BaudRate',115200,'Terminator','CR');
-porta = serial('/dev/ttyACM1','BaudRate',115200,'Terminator','CR','Timeout',10);
+porta = serial('/dev/ttyACM0','BaudRate',115200,'Terminator','CR','Timeout',10);
 fopen(porta);
 disp('Conectado.');
 
