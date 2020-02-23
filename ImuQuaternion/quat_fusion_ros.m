@@ -7,7 +7,7 @@ clear ;close all;clc
 disp('Conectando a Porta Serial...');
 global porta
 % porta = serial('/dev/ttyACM0','BaudRate',115200,'Terminator','CR');
-porta = serial('/dev/ttyACM1','BaudRate',115200,'Terminator','CR','Timeout',10);
+porta = serial('/dev/ttyACM0','BaudRate',115200,'Terminator','CR','Timeout',10);
 fopen(porta);
 disp('Conectado.');
 
@@ -68,17 +68,17 @@ yin = a_measure;
 %x_k+1 = x_k + f(x_k)dt + G.udt
 
 q_k = (q_k' + (Ts/2)*quatmultiply(q_k',[0; w_measure]'))';%Assume calibrado (bias constante) %-Ts/2 *quatmultiply(q_k,[0 bias]); 
-x_est = q_k;
+
 %bias_k1 = bias' - Ts*[0.1 0 0;0 0.1 0;0 0 0.1]*bias' + Ts*bias_adj';
 
 % y_q = quatmultiply(quatconj(q_k1'),[0 0 0 9.8]);%y = h(x)
 % y_est = quatmultiply(y_q,q_k1')';
-a_est = quatrotate(x_est',g')'; %nav2body
+a_est = quatrotate(q_k',g')'; %nav2body
 
 % m_est = quatrotate(x_est',m')'; %nav2body
 
 % y_est = [a_est;m_est]; % 6x1
-y_est = [a_est]; % 3x1
+yhat = [a_est]; % 3x1
 
 Jf = (Ts/2)*[2/Ts -w_measure(1) -w_measure(2) -w_measure(3);
       w_measure(1) 2/Ts w_measure(3) -w_measure(2);
@@ -87,9 +87,9 @@ Jf = (Ts/2)*[2/Ts -w_measure(1) -w_measure(2) -w_measure(3);
   
 %  x_est = x;
 
-Jh1 =2*9.8*[-x_est(3) x_est(4) -x_est(1) x_est(2);
-    x_est(2) x_est(1) x_est(4) x_est(3);
-    x_est(1) -x_est(2) -x_est(3) x_est(4)];
+Jh1 =2*9.8*[-q_k(3) q_k(4) -q_k(1) q_k(2);
+    q_k(2) q_k(1) q_k(4) q_k(3);
+    q_k(1) -q_k(2) -q_k(3) q_k(4)];
 
 %REVISAR
 % Jh2 = 2*[0 0 0 0;
@@ -116,7 +116,7 @@ Jh1 =2*9.8*[-x_est(3) x_est(4) -x_est(1) x_est(2);
     Pk = Jf*Pk*Jf'+Qn; %P_k = Jf(xhar_k-1,u_k)P_k-1J'(xhat_k-1,u_k) + Q_k
     %CORRECT
     Kk = Pk*Jh'/(Jh*Pk*Jh'+Rn);
-    q_k = xhat + Kk*(yin-y_est)
+    q_k = xhat + Kk*(yin-yhat);
     Pk = (eye(4) - Kk*Jh)*Pk;
     
     

@@ -7,7 +7,7 @@ clear ;close all;clc
 disp('Conectando a Porta Serial...');
 global porta
 % porta = serial('/dev/ttyACM0','BaudRate',115200,'Terminator','CR');
-porta = serial('/dev/ttyACM1','BaudRate',115200,'Terminator','CR','Timeout',10);
+porta = serial('/dev/ttyACM0','BaudRate',115200,'Terminator','CR','Timeout',10);
 fopen(porta);
 disp('Conectado.');
 
@@ -18,7 +18,7 @@ Qn = [ 0.001, -0.0003, 0.0003, 0.0003,
     		0.0003,-0.0001,0.0001,0.0001];
 
 Rn_ga = 0.1*eye(3);
-Rn = 0.71e-3*eye(6); 
+Rn = 0.1*eye(6); 
 Rn(4,4) = 2;
 Rn(5,5) = 2;
 Rn(6,6) = 3;
@@ -146,7 +146,7 @@ Jh_ga =2*9.8*[-q_k_gyro_accel(3) q_k_gyro_accel(4) -q_k_gyro_accel(1) q_k_gyro_a
     %CORRECT
     Kk = Pk_ga*Jh_ga'/(Jh_ga*Pk_ga*Jh_ga'+Rn_ga);
     q_k_gyro_accel = q_k_gyro_accel + Kk*(yin_ga-y_est_ga);
-    Pk = (eye(4) - Kk*Jh_ga)*Pk;
+    Pk_ga = (eye(4) - Kk*Jh_ga)*Pk_ga;
     
 
 q_gyro_norm = quatnormalize(q_k_gyro')
