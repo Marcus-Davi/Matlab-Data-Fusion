@@ -1,0 +1,23 @@
+clear;close all;clc
+Freq = 5;
+Lab0 = [-3.743718 -38.577979 0];
+GPS = gpsSensor('UpdateRate',Freq,'ReferenceLocation',Lab0,'HorizontalPositionAccuracy',3,'DecayFactor',0.999);
+
+Samples = 1000000;
+trueX = 0*ones(Samples,3);
+trueV = 0*ones(Samples,3);
+
+[p,v,gs,c] = GPS(trueX,trueV);
+
+% Plots
+% [x,y] = utm(p(1),p(2));
+% [lx,ly] = utm(Lab0(1),Lab0(2));
+% x-lx
+% y-ly
+
+[x_eq,y_eq] = equiret(p(:,1),p(:,2),Lab0(1),Lab0(2));
+
+plot(x_eq,y_eq,'*')
+grid on
+fprintf('std_dev x = %f',sqrt(var(x
+
