@@ -1,3 +1,4 @@
+% TODO -> atulizar com gpsSensor do matlab
 clear;close all;clc
 Ts_imu = 0.01;
 Ts_gps = 1;

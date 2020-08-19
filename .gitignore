@@ -2,5 +2,5 @@
 *.eps
 *.fig
 *.zip
-
+*.m~
 slprj/
