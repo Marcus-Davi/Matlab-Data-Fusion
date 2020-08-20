@@ -1,43 +1,43 @@
 clear;close all;clc
-
+%% SIMULATION PARAMETERS
 Ts = 0.1;
-Ts_gps = 0.1;
-Tsim = 263;
-Samples = round(Tsim/Ts);
+v = 0.15;
+R = 10;
+% [Xr,Ur,Tsim] = path_oito(R,v,Ts,[0 0 0]');
+[Xr,Ur,Tsim] = path_S(15,v,Ts,[0 0 0]');
+iterations = round((Tsim/Ts));
 
-%% Gera Trajetória Referencia
-p = [0 0 0];  % x,y,theta referenciais para in�cio de trajet�ria.
-Xr = p;
-i = 0;
-load('velocidades.mat')
-load('dados_para_fusao.mat')
-v_odo = v;
-w_odo = w;
-for k = 1:Samples  %
-    
-    
-       if(k < Samples/3)
-          v(k) = 0.25;
-          w(k) = 0;
-       elseif(k >= Samples/3 && k<2*Samples/3)
-           v(k) = 0.25;
-           w(k) = pi/(Samples/3)/Ts; %garante curvatura em U
-       else
-          v(k) = 0.25;
-          w(k) = 0;
-       end
-       
-       p = robot_model(p,[v(k) w(k)],Ts);
+% Modelo do robô
+R_real = 0.08; R_usado = 0.06;
+D_real = 0.4; D_usado = 0.4;
+Uncertainty.R = R_usado/R_real; %raio da roda
+Uncertainty.D = D_usado/D_real; % distancia entre rodas
 
-   Xr = [Xr; p];
+%% Gps Model
 
-end
-vr = v;
-wr = w;
-figure(1);
-plot(Xr(:,1),Xr(:,2),'--black','Linewidth',2)
-grid on
-% return
+Lab0 = [-3.743718 -38.577979 0];
+GPSRate = 5;
+Ratio = (1/Ts)/GPSRate;
+Gps_accu = 3;
+Vel_accu = 0.1;
+GPS = gpsSensor('UpdateRate',GPSRate,'ReferenceLocation',Lab0,'HorizontalPositionAccuracy',Gps_accu,'VelocityAccuracy',Vel_accu,'DecayFactor',0.5);
+
+%% Kalman GPS
+A = [1 0 Ts 0;0 1 0 Ts;0 0 1 0;0 0 0 1];
+% x -> [x y x_ y_]
+B = zeros(4,1);
+C = eye(4);
+D = 0;
+SS = ss(A,B,C,D);
+P = eye(4);
+Qn = 0.01*diag([Gps_accu Gps_accu Vel_accu Vel_accu]);
+% Qn = 0.0001*eye(4);
+Rn = [Gps_accu^2 0 0 0;0 Gps_accu^2 0 0;0 0 Vel_accu^2 0;0 0 0 Vel_accu^2];
+
+%% Kalman Robot
+Pr = eye(3);
+Qr = 0.0001*eye(3); %melhorar
+Rr = diag([Gps_accu^2,Gps_accu^2,0.01]);
 
 %% LQR CONTROLLER DESIGN
 ur1 = 1;
@@ -51,106 +51,138 @@ Q = diag([1 1 0]);
 R = 1*eye(2);
 [K_LQ,S,E] = lqr(SYS,Q,R);
 
-%% CLOSED LOOP
-p = [0 0 0]; %Posição robô
-p_odo = [0 0 0];
-p_mixed = [0 0 0];p_est_odo = [0 0 0];
-P = [];P_noise = [];P_measure = [];P_est = [];
-P_odo = [];
-U = [];
-p_pert = [0 0 0];
-p_noise = [0 0 0];
-v_pert = [0 0];
-p_est = p;
 
-v_lim = 0.5;
-w_lim = 0.5;
-
-u1 = 0;
-u2 = 0;
-
-variancia_gps = 3; %variancia GPS
-variancia_bussola = 0.1; %Variancia BUSSOLA
+%% Simulation
+yk = [-3 -3 0]';
+yk_odo = yk;
+yk_gps = yk;
+ykalman = [yk(1:2);0;0;]; %inclui vx vy
+ykalman_robot = yk;
+u = [0.0 0]';
+w = u(2);
+e_t1 = 0; %past error
 
 
-the_bussola = the_bussola + sqrt(variancia_bussola)*randn(1,Samples+1);
+YK = zeros(iterations,3);
+YK_ODO = zeros(iterations,3);
+YK_GPS = [];
+YK_Kalman = [];
+YK_KalmanR = [];
+Uk = zeros(iterations,2);
 
-%AJUSTE DO FILTRO DE KALMAN -> MATRIZ COVARIANCIA Q
-Q = 0.01*eye(3);
-Q(3,3) = 0.0001; %bussola
+% GPS
 
-%VARIANCIA DOS SENSORES (GPS,BUSSOLA)
-R = variancia_gps*eye(3);
-R(3,3) = variancia_bussola; %bussola
+for k=1:iterations
+    
+ 
+    % LOOP CLOSURE
+    ykinput = [ykalman_robot(1) ykalman_robot(2) yk(3)]';
+%     ykinput = [ykalman(1) ykalman(2) yk(3)]';
+%     ykinput = yk_odo;
+%     ykinput = [yk_gps(1) yk_gps(2) yk(3)]';
+%     ykinput = yk;
+    e = Xr(:,k) - ykinput; %feedback aqui
+    
+    T = [cos(ykinput(3)) sin(ykinput(3)) 0;
+         -sin(ykinput(3)) cos(ykinput(3)) 0;
+         0 0 1];
+    e_body = T*e;
 
-Pk = zeros(3);
-for k=1:Samples
+    V = -K_LQ*e_body;
+    v1 = V(1);
+    v2 = V(2);
     
-    % Ruido de medição é inserido aqui  
-%     if(mod(k,Ts_gps/Ts) == 0)
-%     p_noise = sqrt(variancia_gps)*randn(1,3); %gps
-%     p_noise(3) = sqrt(variancia_bussola)*randn(1,1); %bussola
-%     end
+    v = Ur(1,k)*cos(e_body(3)) - v1;
+    w = Ur(2,k) -  v2;
     
-%     p_measure = (p + p_noise); %dados Gerados
-    p_measure = [x_gps(k) y_gps(k) the_bussola(k)]; %dados do Bismark
+  
+        if v > 1
+            v = 1;
+        elseif v < 0
+            v = 0;
+        end
+        
+        if w > 10
+            w = 10;
+        elseif w < -10
+            w = -10;
+        end
     
-    %kalman estendido
-    [p_est,~,Pk] = kalman_ext(Ts,@robot_model,@measurement_model,Q,R,p_est,[v_odo(k) w_odo(k)],Pk,p_measure');
+    u = [v w]';
     
-    p_odo = robot_model(p_odo,[v_odo(k) w_odo(k)],Ts); %odometria pura
     
-%     p_est = robot_model(p_est,[u1 u2],Ts)'; 
-    
-% 
-%     e = Xr(k,:) - p_est';
-    
-%     %Matriz de Rotação (Nav2Body)
-%     M = [cos(p(3)) sin(p(3)) 0;
-%         -sin(p(3)) cos(p(3)) 0;
-%          0 0 1];
-%      
-%     eb = M*e'; %Transforma erros pro quadro local
-%     
-%     u = K_LQ*eb; %LQR
-%     
-%     
-%     %sinal de controle malha fechada
-%     u1 = vr(k)*cos(eb(3)) + u(1); 
-%     u2 = wr(k) +  u(2);
-       
-    
-%     p = robot_model(p,[u1 u2]+,Ts); %fecha malha de posicao
+    yk_odo = robot_model(yk_odo,u,Ts); % odometry model
+    yk = robot_model(yk,u,Ts,Uncertainty); % real model + uncertainty
+    p = [yk(2) yk(1) 0]; %formato NED
+    v = [u(1)*cos(yk(3)) u(1)*sin(cos(yk(3))) 0];
+    [gps_lla,v_gps] = GPS(p,v); % formato NED
+    [gps_x,gps_y] = equiret(gps_lla(1),gps_lla(2),Lab0(1),Lab0(2));
+    yk_gps = [gps_x gps_y]'; 
 
+%     GPS Kalman
+    if (rem(k,Ratio) == 0) % ASYNC UPDATE   
+    YK_GPS = [YK_GPS;yk_gps'];
+    [ykalman,P] = lkalman_predict(ykalman,0,P,Qn,SS);
+    [ykalman,P] = lkalman_update([gps_x gps_y v_gps(1:2)]', ykalman,0,P,Rn,SS);    
+    end
     
-    P = [P;p];
-    U = [U;[u1 u2]];
-    P_noise = [P_noise; p_noise];
-    P_measure = [P_measure; p_measure];
-    P_est = [P_est p_est];
-    P_odo = [P_odo;p_odo];
+%     Robot Kalman
+    [ykalman_robot,Pr] = ekalman_predict(ykalman_robot,u,Pr,Qr,@robot_model,@robot_jacobian,Ts);
+    
+    if (rem(k,Ratio) == 0) % ASYNC UPDATE
+    [ykalman_robot,Pr] = ekalman_update([ykalman(1) ykalman(2) yk(3)]',ykalman_robot,u,Pr,Rr,@model_measurement,@measurement_jacobian,Ts);
+    end
+%     updates
+    
+    
+    
+    YK(k,:) = yk;
+    YK_ODO(k,:) = yk_odo;
+    YK_Kalman = [YK_Kalman;ykalman'];
+    YK_KalmanR = [YK_KalmanR;ykalman_robot'];
+    Uk(k,:) = u;
+    
+    
+% plot(YK(1:k,1),YK(1:k,2),'b','linewidth',2)
+% hold on
+% plot(Xr(1,:),Xr(2,:),'k','linewidth',2)
+% hold off
+% grid on
+% drawnow
+% pause(0.05)
+    
 end
-figure(1)
-plot(P_measure(:,1),P_measure(:,2),'red*','Linewidth',1)
+
+%% Plots
+close all
+
+plot(Xr(1,:),Xr(2,:),'k','linewidth',2)
 hold on
-plot(P_odo(:,1),P_odo(:,2),'Linewidth',2)
-plot(P_est(1,:),P_est(2,:),'green','linewidth',1)
+plot(YK_ODO(1:k,1),YK_ODO(1:k,2),'linewidth',1)
+plot(YK(1:k,1),YK(1:k,2),'linewidth',1)
+plot(YK_GPS(:,1),YK_GPS(:,2),'r.','linewidth',2)
+plot(YK_Kalman(:,1),YK_Kalman(:,2),'b.','linewidth',2)
+plot(YK_KalmanR(:,1),YK_KalmanR(:,2),'g.','linewidth',2)
+legend('Reference','Pure Odometry','Real Robot','GPS','GPS Kalman','GPS + Robot Kalman')
+xlabel('X [m]')
+ylabel('Y [m]')
 grid on
-% plot(P_noise(:,1),P_noise(:,2),'*','Linewidth',1)
-legend('Medido','Odometria Pura','Estimado')
 
+return
+E_GPS = YK(:,1:2) - YK_GPS;
+E_Kalman = YK(:,1:2) - YK_Kalman(:,1:2);
+disp('RMS RAW GPS')
+disp(rms(E_GPS))
 
-figure %bussola
-plot(the_bussola,'red','Linewidth',1)
+disp('RMS KALMAN')
+    disp(rms(E_Kalman))
+return
+figure
+plot(Uk(:,1))
 hold on
-plot(P_est(3,:))
-hold on
-plot(P_odo(:,3))
-grid on
-legend('Medido','Estimado','Odometria')
+plot(Uk(:,2))
+legend('v','w')
+% drawnow
 
+    
 
-
-function p = measurement_model(x,u,Ts)
-    p = x;
-end
