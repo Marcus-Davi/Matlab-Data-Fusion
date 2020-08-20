@@ -2,21 +2,21 @@ clear;close all;clc
 %% SIMULATION PARAMETERS
 Ts = 0.1;
 v = 0.15;
-R = 10;
+% R = 10;
 % [Xr,Ur,Tsim] = path_oito(R,v,Ts,[0 0 0]');
 [Xr,Ur,Tsim] = path_S(15,v,Ts,[0 0 0]');
 iterations = round((Tsim/Ts));
 
 % Modelo do robô
-R_real = 0.08; R_usado = 0.06;
-D_real = 0.4; D_usado = 0.4;
+R_real = 0.08; R_usado = 0.1;
+D_real = 0.4; D_usado = 0.38;
 Uncertainty.R = R_usado/R_real; %raio da roda
 Uncertainty.D = D_usado/D_real; % distancia entre rodas
 
 %% Gps Model
 
 Lab0 = [-3.743718 -38.577979 0];
-GPSRate = 5;
+GPSRate = 1; % Hz
 Ratio = (1/Ts)/GPSRate;
 Gps_accu = 3;
 Vel_accu = 0.1;
@@ -59,8 +59,6 @@ yk_gps = yk;
 ykalman = [yk(1:2);0;0;]; %inclui vx vy
 ykalman_robot = yk;
 u = [0.0 0]';
-w = u(2);
-e_t1 = 0; %past error
 
 
 YK = zeros(iterations,3);
@@ -81,6 +79,8 @@ for k=1:iterations
 %     ykinput = yk_odo;
 %     ykinput = [yk_gps(1) yk_gps(2) yk(3)]';
 %     ykinput = yk;
+
+    % Control feedback
     e = Xr(:,k) - ykinput; %feedback aqui
     
     T = [cos(ykinput(3)) sin(ykinput(3)) 0;
@@ -167,22 +167,7 @@ legend('Reference','Pure Odometry','Real Robot','GPS','GPS Kalman','GPS + Robot 
 xlabel('X [m]')
 ylabel('Y [m]')
 grid on
-
 return
-E_GPS = YK(:,1:2) - YK_GPS;
-E_Kalman = YK(:,1:2) - YK_Kalman(:,1:2);
-disp('RMS RAW GPS')
-disp(rms(E_GPS))
-
-disp('RMS KALMAN')
-    disp(rms(E_Kalman))
-return
-figure
-plot(Uk(:,1))
-hold on
-plot(Uk(:,2))
-legend('v','w')
-% drawnow
 
     
 
