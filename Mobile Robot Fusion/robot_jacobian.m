@@ -1,5 +1,5 @@
 %varargin é o modelo de incertezas (usado / real)
-function xk = robot_model(x0,u,Ts,varargin)
+function Jh = model_jacobian(x0,u,Ts,varargin)
 %xk -> [x,y,cos(theta)]
 
 if(nargin == 3)
@@ -10,12 +10,10 @@ v_uncertain = u(1) / varargin{1}.R;
 w_uncertain = u(2) / varargin{1}.R/varargin{1}.D;        
 end
 
+Jh = [1 0 -Ts*u(1)*sin(x0(3));
+      0 1  Ts*u(1)*cos(x0(3));
+      0 0 1];
 
-xk(1) = x0(1) + v_uncertain*cos(x0(3))*Ts;
-xk(2) = x0(2) + v_uncertain*sin(x0(3))*Ts;
-xk(3) = x0(3) + w_uncertain*Ts;
-
-xk = xk';
 
 
 end
