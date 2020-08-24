@@ -9,9 +9,13 @@ function [xest,Pest] = ekalman_update(y,x,u,P,Rn,model,jacobian,Ts)
 % jacobian : pointer to @jacobian
 % Ts : sampling time
 
-yest = model(x,u,Ts);
+y = reshape(y,[length(y) 1]);
+x = reshape(x,[length(x) 1]);
+u = reshape(u,[length(u) 1]);
 
+yest = model(x,u,Ts);
 Jh = jacobian(x,u,Ts);
+
 err = y - yest;
 S = Jh*P*Jh' + Rn;
 K = P*Jh'*inv(S);

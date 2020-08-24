@@ -7,6 +7,12 @@ function [xest,Pest] = lkalman_update(y,x,u,P,Rn,SS,Ts)
 % model : pointer to @model
 % jacobian : pointer to @jacobian
 % Ts : sampling time
+
+y = reshape(y,[length(y) 1]);
+x = reshape(x,[length(x) 1]);
+u = reshape(u,[length(u) 1]);
+
+
 err = y - SS.C*x;
 S = SS.C*P*SS.C' + Rn;
 K = P*SS.C'*inv(S);

@@ -8,6 +8,9 @@ function [xest,Pest] = ekalman_predict(x,u,P,Qn,model,jacobian,Ts)
 % jacobian : pointer to @jacobian
 % Ts : sampling time
 
+x = reshape(x,[length(x) 1]);
+u = reshape(u,[length(u) 1]);
+
 xest = model(x,u,Ts);
 
 Jf = jacobian(x,u,Ts);

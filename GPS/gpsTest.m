@@ -3,9 +3,9 @@ Freq = 5;
 Lab0 = [-3.743718 -38.577979 0];
 GPS = gpsSensor('UpdateRate',Freq,'ReferenceLocation',Lab0,'HorizontalPositionAccuracy',3,'DecayFactor',0.5);
 
-Samples = 1;
-trueX = 0*ones(Samples,3);
-trueV = 0*ones(Samples,3);
+Samples = 100;
+trueX = 20*ones(Samples,3);
+trueV = 20*ones(Samples,3);
 
 [p,v,gs,c] = GPS(trueX,trueV);
 
@@ -25,6 +25,6 @@ plot(x_eq,y_eq,'*')
 hold on
 plot(x-lx,y-ly,'.')
 grid on
-figure
-plot(v(:,1))
+% figure
+% plot(v(:,1))
 
