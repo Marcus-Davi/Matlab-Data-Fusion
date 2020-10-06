@@ -24,7 +24,7 @@ P = eye(2);
 
 
 Qk = eye(2); %VELS
-Rk = 0.05*eye(2); % RTK
+Rk = 100*eye(2); % RTK
 
 new_rtk = false;
 idx_old = 0;
@@ -56,7 +56,7 @@ err = y_rtk - y;
 S = C*P*C' + Rk;
 K = P*C'*inv(S);
 
-x = x_ + K*err;
+% x = x_ + K*err;
 
 P = (eye(2)-K*C)*P;
 
@@ -74,22 +74,21 @@ idx_old = idx_rtk;
 fused(i,:) = x';
 
 
-
+% %% Plot RTK 2D
+plot(rtk_data(1:idx_rtk,2),rtk_data(1:idx_rtk,3))
+hold on
+plot(gps_data(1:idx_gps,2),gps_data(1:idx_gps,3))
+plot(fused(1:i,1),fused(1:i,2))
+hold off
+pause(0.01)
+drawnow
 
 
 
 end
 
 % return
-%% Plot RTK 2D
-plot(rtk_data(:,2),rtk_data(:,3))
 
-hold on
-%% PLOT GPS 2D
-plot(gps_data(:,2),gps_data(:,3))
-
-plot(fused(:,1),fused(:,2))
-legend('RTK','GPS','Fused')
 
 %% Utilities
 
