@@ -57,15 +57,15 @@ for i=2:N
     
     %Predict (with accelerations)
     %Reform equations
-%     Ts = Accs(i,1) - Accs(i-1,1);
-%     A = [1 Ts 0 0;0 1 0 0;0 0 1 Ts;0 0 0 1];
-%     B =  [Ts^2/2 0;Ts 0;0 Ts^2/2;0 Ts];
-%     Crtk = [1 0 0 0;0 0 1 0];
-%     Cvel = [0 1 0 0;0 0 0 1];
-%     D = 0;
-%     P = eye(length(x));
-%     Q = [Ts^3^3 Ts^2/2;Ts^2/2 Ts];
-%     Qk = 0.03*blkdiag(Q,Q); %Acc
+    Ts = Accs(i,1) - Accs(i-1,1);
+    A = [1 Ts 0 0;0 1 0 0;0 0 1 Ts;0 0 0 1];
+    B =  [Ts^2/2 0;Ts 0;0 Ts^2/2;0 Ts];
+    Crtk = [1 0 0 0;0 0 1 0];
+    Cvel = [0 1 0 0;0 0 0 1];
+    D = 0;
+    P = eye(length(x));
+    Q = [Ts^3^3 Ts^2/2;Ts^2/2 Ts];
+    Qk = 0.03*blkdiag(Q,Q); %Acc
     
     x = A*x + B*u;
     P = A*P*A' + Qk;
@@ -78,7 +78,7 @@ for i=2:N
         y_vel = [Vels(idx_vel,2)  Vels(idx_vel,3)]';
         err = y_vel - Cvel*x;
         
-%         Rvel = (1/(Ts))*eye(2);
+        Rvel = (0.01/(Ts))*eye(2);
         
         S = Cvel*P*Cvel' + Rvel;
         K = P*Cvel'*inv(S);
@@ -93,7 +93,7 @@ for i=2:N
         y_rtk = [rtk_data(idx_rtk,2) rtk_data(idx_rtk,3)]';
         err = y_rtk - Crtk*x;
         
-%         Rrtk = (1/Ts)*eye(2);
+        Rrtk = (0.5/Ts)*eye(2);
         
         S = Crtk*P*Crtk' + Rrtk;
         K = P*Crtk'*inv(S);
@@ -130,7 +130,7 @@ plot(fused(1:i,1),fused(1:i,3),'r','linewidth',2)
 hold off
 % pause(0.01)
 drawnow
-legend('Pure RTK','DJI Fusion','GPAR Fusion')
+legend('Pure RTK','DJI Fusion','Marcus Fusion')
 grid on
 
 % return
