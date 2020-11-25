@@ -16,7 +16,7 @@ Uncertainty.D = D_usado/D_real; % distancia entre rodas
 %% Gps Model
 
 Lab0 = [-3.743718 -38.577979 0];
-GPSRate = 10; % Hz
+GPSRate = 1; % Hz
 Ratio = (1/Ts)/GPSRate;
 Gps_accu = 3;
 Vel_accu = 0.1;
@@ -29,13 +29,13 @@ B = zeros(4,1);
 C = eye(4);
 D = 0;
 SS = ss(A,B,C,D);
-P = eye(4);
+P = 10000*eye(4);
 Qn = 0.01*diag([Gps_accu Gps_accu Vel_accu Vel_accu]); %aqui tem que ser brown motion. qt maior, mais ele tende pro unified
 Rn = 1*diag([Gps_accu^2 Gps_accu^2 Vel_accu^2 Vel_accu^2]);
 
 %% Kalman Robot
-Pr = eye(3);
-Qr = 0.0001*eye(3); % melhorar.. 0.0001 tá ok
+Pr = 100000*eye(3);
+Qr = 0.0001*eye(3); % melhorar projeto. 0.0001 tá ok
 Rr = diag([Gps_accu^2,Gps_accu^2,0.01]);
 
 %% Kalman Unified
@@ -80,13 +80,13 @@ Uk = zeros(iterations,2);
 for k=1:iterations
     
  
-    % LOOP CLOSURE
+    % Control loop closure
 %     ykinput = [ykalman_unified(1) ykalman_unified(2) yk(3)]';
       ykinput = [ykalman_robot(1) ykalman_robot(2) yk(3)]'; %mt mais suave
 %     ykinput = [ykalman_gps(1) ykalman_gps(2) yk(3)]';
-%     ykinput = yk_odo;
-%     ykinput = [yk_gps(1) yk_gps(2) yk(3)]';
-%     ykinput = yk;
+%     ykinput = yk_odo; %odo
+%     ykinput = [yk_gps(1) yk_gps(2) yk(3)]'; 
+%     ykinput = yk; % true value
 
     % Control feedback
     e = Xr(:,k) - ykinput; %feedback aqui
@@ -120,12 +120,16 @@ for k=1:iterations
     
     
     yk_odo = robot_model(yk_odo,u,Ts); % odometry model
-    yk = robot_model(yk,u,Ts,Uncertainty); % real model + uncertainty
+    
+    
+    yk = robot_model(yk,u,Ts,Uncertainty); % real model + uncertainty | TRUE VALUE
+    
+    
     p = [yk(2) yk(1) 0]; %formato NED
-    v = [u(1)*cos(yk(3)) u(1)*sin(cos(yk(3))) 0];
+    v = [u(1)*cos(yk(3)) u(1)*sin(cos(yk(3))) 0]; %true velocity
     [gps_lla,v_gps] = GPS(p,v); % formato NED
     [gps_x,gps_y] = equiret(gps_lla(1),gps_lla(2),Lab0(1),Lab0(2));
-    yk_gps = [gps_x gps_y]'; 
+    yk_gps = [gps_x gps_y]'; % GPS Convertido p X,Y
 
 %     GPS Kalman
     if (rem(k,Ratio) == 0) % ASYNC UPDATE   

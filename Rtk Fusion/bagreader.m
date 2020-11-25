@@ -1,6 +1,6 @@
 clear;close all;clc
 % Escolhe um arquivo '.bag'
-bagfile = 'mission_experiment.bag';
+bagfile = 'onlinefusion.bag';
 bag = rosbag(bagfile);
 bagselect0 = select(bag,'topic','/tf');
 bagselect1 = select(bag,'topic','/dji_sdk/acceleration_ground_fused');
@@ -10,6 +10,7 @@ accmsgs = readMessages(bagselect1);
 velmsgs = readMessages(bagselect2);
 
 %% Convert to matlab 
+fused_data = [];
 gps_data = [];
 rtk_data = [];
 Accs = zeros(length(accmsgs),4);
@@ -19,6 +20,11 @@ for i=1:length(tfmsgs)
        time = tfmsgs{i}.Transforms.Header.Stamp.Sec + tfmsgs{i}.Transforms.Header.Stamp.Nsec*1e-9;
        gps_data = [gps_data;
        time tfmsgs{i}.Transforms.Transform.Translation.X tfmsgs{i}.Transforms.Transform.Translation.Y tfmsgs{i}.Transforms.Transform.Translation.Z];
+   elseif(strcmp(tfmsgs{i}.Transforms.ChildFrameId,'fused'))
+      time = tfmsgs{i}.Transforms.Header.Stamp.Sec + tfmsgs{i}.Transforms.Header.Stamp.Nsec*1e-9;
+       fused_data = [fused_data;
+       time tfmsgs{i}.Transforms.Transform.Translation.X tfmsgs{i}.Transforms.Transform.Translation.Y tfmsgs{i}.Transforms.Transform.Translation.Z]; 
+       
    else
        time = tfmsgs{i}.Transforms.Header.Stamp.Sec + tfmsgs{i}.Transforms.Header.Stamp.Nsec*1e-9;
         rtk_data = [rtk_data;
@@ -41,7 +47,7 @@ end
 %% Save
 clc
 datafile = strtok(bagfile,'.');
-save(datafile,'gps_data','rtk_data','Accs','Vels');
+save(datafile,'gps_data','rtk_data','Accs','Vels','fused_data');
 disp('dados salvo com sucesso');
 
 
