@@ -16,7 +16,7 @@ Uncertainty.D = D_usado/D_real; % distancia entre rodas
 %% Gps Model
 
 Lab0 = [-3.743718 -38.577979 0];
-GPSRate = 2; % Hz
+GPSRate = 1; % Hz
 Ratio = (1/Ts)/GPSRate;
 Gps_accu = 2; %Accuracy (meters)
 Vel_accu = 1; % Accuracy (m)
@@ -69,10 +69,10 @@ for k=1:iterations
     
     % Control loop closure
     
-          ykinput = [ykalman_robot(1) ykalman_robot(3) ykalman_robot(5)]'; %mt mais suave
+%           ykinput = [ykalman_robot(1) ykalman_robot(3) ykalman_robot(5)]'; %mt mais suave
     %     ykinput = yk_odo; %odo
     %     ykinput = [yk_gps(1) yk_gps(2) yk(3)]';
-%     ykinput = [yk(1) yk(3) yk(5)]'; % true value [x y theta]
+    ykinput = [yk(1) yk(3) yk(5)]'; % true value [x y theta]
     
     % Start of control law
     e = Xr(:,k) - ykinput; %feedback aqui
@@ -122,6 +122,7 @@ for k=1:iterations
     yk_gps = [gps_x gps_y]'; % GPS Convertido p X,Y
       
     if (rem(k,Ratio) == 0) % ASYNC UPDATE
+        YK_GPS(k,:) = yk_gps;
         % measured -> [x,y,x_,y_,th]
         yk_measurement = [gps_x v_gps(2) gps_y v_gps(1) yk(5)]' %v_gps(2) -> east = x
         [ykalman_robot,P] = ekalman_update(yk_measurement,ykalman_robot,u,P,Rn,@model_measurement2,@measurement_jacobian2,Ts);
@@ -132,7 +133,7 @@ for k=1:iterations
     
     YK(k,:) = yk;
     YK_ODO(k,:) = yk_odo;
-    YK_GPS(k,:) = yk_gps;
+    
     YK_Kalman = [YK_Kalman;ykalman_robot'];
     Uk(k,:) = u;
     
