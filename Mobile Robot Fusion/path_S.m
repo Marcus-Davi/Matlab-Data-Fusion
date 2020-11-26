@@ -1,4 +1,4 @@
-%Raio,velocidade linear,Ts
+%Xr,Ur, tsimulation (s) = (total dist, v track, Ts,origin)
 function [Xr,Ur,Tsim] = path_S(dist,v0,Ts,x0)
 
 X = x0;
