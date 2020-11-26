@@ -16,7 +16,7 @@ Uncertainty.D = D_usado/D_real; % distancia entre rodas
 %% Gps Model
 
 Lab0 = [-3.743718 -38.577979 0];
-GPSRate = 5; % Hz
+GPSRate = 2; % Hz
 Ratio = (1/Ts)/GPSRate;
 Gps_accu = 2; %Accuracy (meters)
 Vel_accu = 1; % Accuracy (m)
@@ -132,6 +132,7 @@ for k=1:iterations
     
     YK(k,:) = yk;
     YK_ODO(k,:) = yk_odo;
+    YK_GPS(k,:) = yk_gps;
     YK_Kalman = [YK_Kalman;ykalman_robot'];
     Uk(k,:) = u;
     
@@ -159,13 +160,13 @@ disp(rms(e_kalman))
 %% Plots
 close all
 
-plot(Xr(1,:),Xr(2,:),'k','linewidth',2)
+plot(YK_GPS(:,1),YK_GPS(:,2),'r.','linewidth',2)
 hold on
 plot(YK_ODO(1:k,1),YK_ODO(1:k,3),'linewidth',2)
 plot(YK(1:k,1),YK(1:k,3),'linewidth',2)
-% plot(YK_GPS(:,1),YK_GPS(:,2),'r.','linewidth',2)
+plot(Xr(1,:),Xr(2,:),'k','linewidth',2)
 plot(YK_Kalman(:,1),YK_Kalman(:,3),'b','linewidth',2)
-legend('Reference','Pure Odometry','Real Robot','Kalman')
+legend('GPS Raw Data','Pure Odometry','Real Robot','Reference','Kalman')
 xlabel('X [m]')
 ylabel('Y [m]')
 grid on
